@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%230ea5e9'/%3E%3Cstop offset='100%25' stop-color='%233b82f6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='72' height='72' rx='16' fill='%230f172a'/%3E%3Cpath d='M12 48 Q22 32 32 48 Q42 64 52 48 Q58 40 62 48' fill='none' stroke='url(%23g)' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='30' r='4' fill='url(%23g)'/%3E%3C/svg%3E" width="76" />
+  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72'%3E%3Crect width='72' height='72' rx='16' fill='%232563eb'/%3E%3Cellipse cx='36' cy='46' rx='17' ry='4' fill='%231d4ed8' opacity='0.5'/%3E%3Crect x='19' y='25' width='34' height='21' fill='%23ffffff'/%3E%3Cellipse cx='36' cy='25' rx='17' ry='4' fill='%23eff6ff'/%3E%3Cellipse cx='36' cy='46' rx='17' ry='4' fill='none' stroke='%23bfdbfe' stroke-width='1.5'/%3E%3C/svg%3E" width="76" />
 </p>
 
 <h1 align="center">Surge <sub>/sɜːrdʒ/</sub></h1>
@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/chenjunwenhao/MySQL-Explorer/releases"><img src="https://img.shields.io/badge/Download-v2.0-0ea5e9?style=for-the-badge" /></a>
+  <a href="https://github.com/chenjunwenhao/MySQL-Explorer/releases"><img src="https://img.shields.io/badge/Download-v2.0.1-0ea5e9?style=for-the-badge" /></a>
   <a href="https://github.com/chenjunwenhao/MySQL-Explorer/releases"><img src="https://img.shields.io/badge/Platform-macOS+Windows-blue?style=for-the-badge" /></a>
   <a href="https://github.com/chenjunwenhao/MySQL-Explorer"><img src="https://img.shields.io/github/stars/chenjunwenhao/MySQL-Explorer?style=for-the-badge&color=fbbf24" /></a>
 </p>
@@ -41,7 +41,7 @@
     <tr>
       <td align="center" width="280">
         <strong>macOS</strong><br><sub>Apple Silicon · DMG installer</sub><br><br>
-        <a href="https://github.com/chenjunwenhao/MySQL-Explorer/releases/download/v2.0.0/Surge-2.0.0-arm64.dmg">
+        <a href="https://github.com/chenjunwenhao/MySQL-Explorer/releases/download/v2.0.1/Surge-2.0.1-arm64.dmg">
           <img src="https://img.shields.io/badge/Download_DMG-117_MB-0ea5e9?style=for-the-badge&logo=apple" />
         </a>
       </td>
