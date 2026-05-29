@@ -60,7 +60,7 @@ export default function TabContent({
     return (
       <div className="tab-content-empty">
         <div className="big-icon">{I.server}</div>
-        <h2>DB Explorer</h2>
+        <h2>Surge</h2>
         <p>Connect to a MySQL database to explore tables and run queries.</p>
         <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => {
           setMName(''); setMHost('127.0.0.1'); setMPort(3306); setMUser('root'); setMPass(''); setMDb(''); setMSave(true); setMResult(null); setShowModal(true);

@@ -860,7 +860,7 @@ export default function App() {
     <div className="app-shell">
       <div className="toolbar">
         <div className="toolbar-left">
-          <span className="toolbar-title">DB Explorer</span>
+          <span className="toolbar-title">Surge</span>
           <span className="toolbar-spacer" />
           <button className="toolbar-btn accent" onClick={() => {
             setMName(''); setMHost('127.0.0.1'); setMPort(3306); setMUser('root'); setMPass(''); setMDb(''); setMSave(true); setMResult(null); setShowModal(true);
