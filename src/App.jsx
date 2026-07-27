@@ -171,7 +171,7 @@ export default function App() {
   } = useSidebar({ setInstances, setOpenTabs, instancesRef, setStatus, toast, err, lastPingRef, setTreeErrors, setRefreshing });
 
   /* ----- Query execution ----- */
-  const { doQuery, execQuery, fmtSQL, cancelQuery, explainQuery, txAction, txActive, txStartedAt } = useQueryExecution({
+  const { doQuery, execQuery, fmtSQL, cancelQuery, explainQuery, txAction, txStates } = useQueryExecution({
     edRef, abortRef, timerRef, instancesRef, selInst,
     setOpenTabs, setStatus, setRunning, setQueryHistory,
     activeTab, ensureConnected, loadTabs, err,
@@ -362,13 +362,10 @@ export default function App() {
 
   /* ----- Close / Reopen tab ----- */
   const closeTab = useCallback((tid) => {
-    // Warn if transaction is active for this tab's instance
-    if (txActive) {
-      const tab = openTabs.find(t => t.id === tid);
-      if (tab && tab.instId === selInst?.id) {
-        toast('Commit or rollback your transaction before closing this tab', 'warning');
-        return;
-      }
+    // Warn if transaction is active for THIS tab
+    if (txStates[tid]) {
+      toast('Commit or rollback your transaction before closing this tab', 'warning');
+      return;
     }
     setOpenTabs(p => {
       const tab = p.find(t => t.id === tid);
@@ -377,7 +374,7 @@ export default function App() {
       if (activeTabId === tid) setActiveTabId(r.length ? r[r.length - 1].id : null);
       return r;
     });
-  }, [activeTabId, txActive, selInst, openTabs, toast]);
+  }, [activeTabId, txStates, openTabs, toast]);
 
   const closeOtherTabs = useCallback((tid) => {
     setOpenTabs(p => p.filter(t => t.id === tid));
@@ -673,37 +670,39 @@ export default function App() {
 
   /* ----- Transaction timeout polling ----- */
   useEffect(() => {
-    if (!txActive || !selInst?.id) return;
-    const instId = selInst.id;
-    let lastWarn = '';
-    let wasActive = true;
+    const sessionIds = Object.keys(txStates);
+    if (!sessionIds.length) return;
+    const warns = new Map(); // sessionId → lastWarn
+    const wasActive = new Map(sessionIds.map(id => [id, true]));
     const poll = async () => {
-      try {
-        const resp = await fetch(`/api/transaction-status?instanceId=${encodeURIComponent(instId)}`);
-        const data = await resp.json();
-        if (!data.ok || !data.active) {
-          if (wasActive) {
-            // Transaction ended (likely auto-rollback)
-            toast('Transaction has ended (auto-rollback or disconnect)', 'warning');
-            wasActive = false;
+      for (const sessionId of sessionIds) {
+        try {
+          const resp = await fetch(`/api/transaction-status?sessionId=${encodeURIComponent(sessionId)}`);
+          const data = await resp.json();
+          if (!data.ok || !data.active) {
+            if (wasActive.get(sessionId)) {
+              toast('Transaction has ended (auto-rollback or disconnect)', 'warning');
+              wasActive.set(sessionId, false);
+            }
+            continue;
           }
-          return;
-        }
-        const mins = Math.floor(data.elapsed / 60000);
-        const elapsedLabel = mins > 0 ? `${mins}m` : `${Math.floor(data.elapsed / 1000)}s`;
-        if (data.elapsed >= 15 * 60 * 1000) {
-          const msg = `Transaction running for ${elapsedLabel} — will auto-rollback at 30min`;
-          if (lastWarn !== msg) { toast(msg, 'warning'); lastWarn = msg; }
-        } else if (data.elapsed >= 5 * 60 * 1000) {
-          const msg = `Transaction running for ${elapsedLabel} — consider committing`;
-          if (lastWarn !== msg) { toast(msg, 'warning'); lastWarn = msg; }
-        }
-      } catch (_) {}
+          const mins = Math.floor(data.elapsed / 60000);
+          const elapsedLabel = mins > 0 ? `${mins}m` : `${Math.floor(data.elapsed / 1000)}s`;
+          const lastWarn = warns.get(sessionId) || '';
+          let msg = '';
+          if (data.elapsed >= 15 * 60 * 1000) {
+            msg = `Transaction running for ${elapsedLabel} — will auto-rollback at 30min`;
+          } else if (data.elapsed >= 5 * 60 * 1000) {
+            msg = `Transaction running for ${elapsedLabel} — consider committing`;
+          }
+          if (msg && msg !== lastWarn) { toast(msg, 'warning'); warns.set(sessionId, msg); }
+        } catch (_) {}
+      }
     };
     poll();
     const id = setInterval(poll, 30000);
     return () => clearInterval(id);
-  }, [txActive, selInst?.id, toast]);
+  }, [txStates, toast]);
 
   /* ----- Export result ----- */
   const exportResult = useCallback(async (format) => {
@@ -1017,8 +1016,7 @@ export default function App() {
             explainQuery={explainQuery}
             fmtSQL={fmtSQL}
             txAction={txAction}
-            txActive={txActive}
-            txStartedAt={txStartedAt}
+            txStates={txStates}
             reopenTab={reopenTab}
             closeTab={closeTab}
             setSub={setSub}

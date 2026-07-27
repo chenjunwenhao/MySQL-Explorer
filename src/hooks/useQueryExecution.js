@@ -46,14 +46,14 @@ export default function useQueryExecution({
 }) {
   /* ----- API helpers ----- */
   const doQuery = useCallback(async (instId, sql) => {
-    const r = await api('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: instId, sql }) });
+    const r = await api('/api/query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: instId, sql, sessionId: activeTab?.id || '' }) });
     return r;
-  }, []);
+  }, [activeTab]);
 
   const doTx = useCallback(async (instId, action) => {
-    const r = await api('/api/transaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: instId, action }) });
+    const r = await api('/api/transaction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: instId, action, sessionId: activeTab?.id || '' }) });
     return r;
-  }, []);
+  }, [activeTab]);
 
   /* ----- Execute query ----- */
   const execQuery = useCallback(async () => {
@@ -98,12 +98,12 @@ export default function useQueryExecution({
     let effInstId = activeTab.instId;
     try {
       effInstId = await ensureConnected(activeTab.instId);
-      runInstRef.current = effInstId;
+      runSessionRef.current = activeTab.id;
       if (effInstId !== activeTab.instId) {
         setOpenTabs(p => p.map(t => t.id === activeTab.id ? { ...t, instId: effInstId } : t));
       }
     } catch (e) {
-      clearTimeout(timerRef.current);
+      clearInterval(timerRef.current);
       abortRef.current = null;
       setRunning(false);
       setStatus('Reconnect failed');
@@ -112,7 +112,7 @@ export default function useQueryExecution({
     }
 
     try {
-      const r = await api('/api/query-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: effInstId, sql, database: activeTab.db || '' }), signal: controller.signal });
+      const r = await api('/api/query-batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: effInstId, sql, database: activeTab.db || '', sessionId: activeTab.id || '' }), signal: controller.signal });
 
       if (r.ok && r.results) {
         let batch = r.results.filter(b => !/^USE\s+`/.test(b.sql || ''));
@@ -151,7 +151,7 @@ export default function useQueryExecution({
     } finally {
       clearInterval(timerRef.current);
       if (abortRef.current === controller) abortRef.current = null;
-      runInstRef.current = null;
+      runSessionRef.current = null;
       setRunning(false);
     }
   }, [activeTab, ensureConnected, loadTabs]);
@@ -167,13 +167,13 @@ export default function useQueryExecution({
   }, [activeTab]);
 
   /* ----- Cancel running query ----- */
-  const runInstRef = useRef(null);
+  const runSessionRef = useRef(null);
   const cancelQuery = useCallback(() => {
     if (abortRef.current) abortRef.current.abort();
     // Also kill the query on the server side
-    if (runInstRef.current) {
-      api('/api/cancel-query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instanceId: runInstRef.current }) }).catch(() => {});
-      runInstRef.current = null;
+    if (runSessionRef.current) {
+      api('/api/cancel-query', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: runSessionRef.current }) }).catch(() => {});
+      runSessionRef.current = null;
     }
   }, []);
 
@@ -201,31 +201,38 @@ export default function useQueryExecution({
   }, [activeTab, ensureConnected]);
 
   /* ----- Transaction ----- */
-  const [txActive, setTxActive] = useState(false);
-  const [txStartedAt, setTxStartedAt] = useState(null);
-  const txTimerRef = useRef(null);
+  const [txStates, setTxStates] = useState({}); // { [tabId]: startedAt }
 
   const txAction = useCallback(async (action) => {
     if (!selInst) { err('No instance selected'); return; }
+    const tabId = activeTab?.id;
+    if (!tabId) { err('No active tab'); return; }
     const r = await doTx(selInst.id, action);
     if (r.ok) {
       if (action === 'begin') {
-        setTxActive(true);
-        setTxStartedAt(Date.now());
+        setTxStates(p => ({ ...p, [tabId]: Date.now() }));
       } else {
-        setTxActive(false);
-        setTxStartedAt(null);
+        setTxStates(p => {
+          const next = { ...p };
+          delete next[tabId];
+          return next;
+        });
       }
       setStatus(`TX ${action} OK`);
     } else {
-      // If commit/rollback fails, tx might still be active — keep state
-      if (action === 'begin') { setTxActive(false); setTxStartedAt(null); }
+      if (action === 'begin') {
+        setTxStates(p => {
+          const next = { ...p };
+          delete next[tabId];
+          return next;
+        });
+      }
       err(r.error);
     }
-  }, [selInst, doTx, err]);
+  }, [selInst, doTx, err, activeTab]);
 
   return {
     doQuery, execQuery, fmtSQL, cancelQuery, explainQuery, txAction,
-    txActive, txStartedAt,
+    txStates,
   };
 }

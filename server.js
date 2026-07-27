@@ -443,9 +443,10 @@ app.get('/api/columns', async (req, res) => {
 app.post('/api/query', async (req, res) => {
   try {
     const instanceId = resolveInstanceId(req);
+    const sessionId = req.body.sessionId || '';
     const sql = req.body.sql;
     if (!sql) return res.status(400).json({ error: 'sql required' });
-    const result = await db.execute(instanceId, sql);
+    const result = await db.execute(instanceId, sql, undefined, sessionId);
     res.json({ ok: true, rows: result.rows, fields: result.fields });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -478,6 +479,7 @@ function splitSQL(sql) {
 app.post('/api/query-batch', async (req, res) => {
   try {
     const instanceId = resolveInstanceId(req);
+    const sessionId = req.body.sessionId || '';
     const database = req.body.database || '';
     const statements = splitSQL(req.body.sql || '');
     if (!statements.length) return res.status(400).json({ error: 'no SQL found' });
@@ -487,7 +489,7 @@ app.post('/api/query-batch', async (req, res) => {
     for (const sql of statements) {
       try {
         const start = Date.now();
-        const result = await db.execute(instanceId, sql);
+        const result = await db.execute(instanceId, sql, undefined, sessionId);
         const elapsed = Date.now() - start;
         // mysql2 returns ResultSetHeader for DML/DDL (affectedRows etc.), RowDataPacket[] for SELECT
         const isSelect = Array.isArray(result.rows);
@@ -547,16 +549,18 @@ app.get('/api/explain', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
   try {
     const instanceId = resolveInstanceId(req);
+    const sessionId = req.body.sessionId;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
     const action = req.body.action;
     if (!action) return res.status(400).json({ error: 'action required' });
     if (action === 'begin') {
-      await db.beginTransaction(instanceId);
+      await db.beginTransaction(sessionId, instanceId);
       return res.json({ ok: true });
     } else if (action === 'commit') {
-      await db.commit(instanceId);
+      await db.commit(sessionId);
       return res.json({ ok: true });
     } else if (action === 'rollback') {
-      await db.rollback(instanceId);
+      await db.rollback(sessionId);
       return res.json({ ok: true });
     }
     res.status(400).json({ error: 'unknown action' });
@@ -568,8 +572,9 @@ app.post('/api/transaction', async (req, res) => {
 // Transaction status — polled by frontend for timeout warnings
 app.get('/api/transaction-status', (req, res) => {
   try {
-    const instanceId = resolveInstanceId(req);
-    const status = db.getTransactionStatus(instanceId);
+    const sessionId = req.query.sessionId;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    const status = db.getTransactionStatus(sessionId);
     res.json({ ok: true, ...status });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -666,8 +671,9 @@ app.get('/api/autocomplete', async (req, res) => {
 
 app.post('/api/cancel-query', async (req, res) => {
   try {
-    const instanceId = resolveInstanceId(req);
-    const killed = await db.cancelQuery(instanceId);
+    const sessionId = req.body.sessionId;
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    const killed = await db.cancelQuery(sessionId);
     res.json({ ok: true, killed });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });

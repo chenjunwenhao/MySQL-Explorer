@@ -22,8 +22,7 @@ export default function TabContent({
   explainQuery,
   fmtSQL,
   txAction,
-  txActive,
-  txStartedAt,
+  txStates,
   reopenTab,
   closeTab,
   setSub,
@@ -155,13 +154,14 @@ export default function TabContent({
   }, [savePrompt]);
 
   /* ----- Transaction timer: update elapsed every second ----- */
+  const txStartedAt = txStates[tab.id];
   useEffect(() => {
-    if (!txActive || !txStartedAt) { setTxElapsed(0); return; }
+    if (!txStartedAt) { setTxElapsed(0); return; }
     const tick = () => setTxElapsed(Math.floor((Date.now() - txStartedAt) / 1000));
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [txActive, txStartedAt]);
+  }, [txStartedAt]);
   const setSubTab = (tid, st) => setOpenTabs(p => p.map(t => t.id === tid ? { ...t, subTab: st } : t));
 
   /* ----- History: click outside / Escape to close ----- */
@@ -309,7 +309,7 @@ export default function TabContent({
         </div>
         <div className="editor-toolbar-right" style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           {/* ── Transaction group ── */}
-          {!txActive ? (
+          {!txStartedAt ? (
             <button className="btn btn-sm" onClick={() => txAction('begin')} title="Begin Transaction">{I.tx} Begin Tx</button>
           ) : (
             <>
