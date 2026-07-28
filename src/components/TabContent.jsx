@@ -154,7 +154,7 @@ export default function TabContent({
   }, [savePrompt]);
 
   /* ----- Transaction timer: update elapsed every second ----- */
-  const txStartedAt = txStates[tab.id];
+  const txStartedAt = txStates[activeTab?.id];
   useEffect(() => {
     if (!txStartedAt) { setTxElapsed(0); return; }
     const tick = () => setTxElapsed(Math.floor((Date.now() - txStartedAt) / 1000));
