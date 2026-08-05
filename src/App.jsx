@@ -528,7 +528,7 @@ export default function App() {
     setStatus('Inserting...');
     try {
       const r = await api('/api/insert', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceId: tab.instId, table: `${tab.dbName}.${tab.tName}`, row }) });
+        body: JSON.stringify({ instanceId: tab.instId, database: tab.dbName, table: tab.tName, row }) });
       if (r.ok) {
         toast('Row inserted', 'success');
         setStatus('Row inserted');
@@ -558,7 +558,7 @@ export default function App() {
       tab.pkColumns.forEach(c => { pk[c] = row[c]; });
       try {
         const r = await api('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ instanceId: tab.instId, table: `${tab.dbName}.${tab.tName}`, pk }) });
+          body: JSON.stringify({ instanceId: tab.instId, database: tab.dbName, table: tab.tName, pk }) });
         if (r.ok) deleted++;
         else { failed++; errors.push(r.error || 'Unknown error'); }
       } catch (e) { failed++; errors.push(e.message || String(e)); }

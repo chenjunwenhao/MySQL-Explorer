@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.4.9] — 2026-08-05
+
+### Fixed
+- **修复 Edit Data 页面 INSERT/DELETE 失败**：`/api/insert` 和 `/api/delete` 端点接受 `database.table` 拼接字符串时，`escapeId` 将整个字符串（含点号）当作单个标识符转义，MySQL 无法识别。改为与 `/api/edit` 一致，前后端均分离传递 `database` 和 `table`，分别转义。
+
+## [2.4.8] — 2026-08-04
+
+### Fixed
+- **修复 ReferenceError: tab is not defined**：UpdateModal 更新弹窗中引用了未定义的 `tab` 变量导致崩溃。
+
 ## [2.4.7] — 2026-07-14
 
 ### Fixed

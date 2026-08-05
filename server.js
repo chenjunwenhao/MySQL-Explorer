@@ -613,14 +613,15 @@ app.post('/api/edit', async (req, res) => {
 app.post('/api/insert', async (req, res) => {
   try {
     const instanceId = resolveInstanceId(req);
-    const { table, row } = req.body;
+    const { database, table, row } = req.body;
     if (!table || !row) return res.status(400).json({ error: 'table, row required' });
     const keys = Object.keys(row);
     if (!keys.length) return res.status(400).json({ error: 'row has no columns' });
     const cols = keys.map(k => escapeId(k)).join(', ');
     const pholders = keys.map(() => '?').join(', ');
     const values = keys.map(k => row[k]);
-    const sql = `INSERT INTO ${escapeId(table)} (${cols}) VALUES (${pholders})`;
+    const fullTable = database ? `${escapeId(database)}.${escapeId(table)}` : escapeId(table);
+    const sql = `INSERT INTO ${fullTable} (${cols}) VALUES (${pholders})`;
     const result = await db.execute(instanceId, sql, values);
     res.json({ ok: true, affectedRows: result.rows.affectedRows || 0, insertId: result.rows.insertId || null });
   } catch (err) {
@@ -632,12 +633,13 @@ app.post('/api/insert', async (req, res) => {
 app.post('/api/delete', async (req, res) => {
   try {
     const instanceId = resolveInstanceId(req);
-    const { table, pk } = req.body;
+    const { database, table, pk } = req.body;
     if (!table || !pk || !Object.keys(pk).length) return res.status(400).json({ error: 'table, pk required' });
     const whereKeys = Object.keys(pk);
     const whereClauses = whereKeys.map((k) => `${escapeId(k)} = ?`).join(' AND ');
     const whereValues = whereKeys.map((k) => pk[k]);
-    const sql = `DELETE FROM ${escapeId(table)} WHERE ${whereClauses}`;
+    const fullTable = database ? `${escapeId(database)}.${escapeId(table)}` : escapeId(table);
+    const sql = `DELETE FROM ${fullTable} WHERE ${whereClauses}`;
     const result = await db.execute(instanceId, sql, whereValues);
     res.json({ ok: true, affectedRows: result.rows.affectedRows || 0 });
   } catch (err) {
